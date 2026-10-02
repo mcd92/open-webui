@@ -121,6 +121,8 @@
 
 	const i18n: any = getContext('i18n');
 
+	const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+
 	type AskUserPrompt = {
 		show: boolean;
 		questions: any[];
@@ -426,7 +428,7 @@
 			}
 
 			chatInputElement?.setText(text);
-			if (!$showCallOverlay) {
+			if (!$showCallOverlay && !isTouchDevice) {
 				focus();
 			}
 
@@ -1591,7 +1593,7 @@
 		loaded = true;
 
 		window.setTimeout(() => {
-			if (!$showCallOverlay) {
+			if (!$showCallOverlay && !isTouchDevice) {
 				const chatInput = document.getElementById('chat-input');
 				chatInput?.focus();
 			}
@@ -1758,6 +1760,10 @@
 
 								if ($settings?.speechAutoSend ?? false) {
 									dispatch('submit', prompt);
+									// Dismiss mobile soft keyboard after speech auto-send
+									if (isTouchDevice) {
+										document.activeElement?.blur();
+									}
 								}
 							}}
 						/>
@@ -1766,6 +1772,10 @@
 						class="w-full flex flex-col gap-1.5 {recording ? 'hidden' : ''}"
 						on:submit|preventDefault={() => {
 							dispatch('submit', prompt);
+							// Dismiss mobile soft keyboard after send
+							if (isTouchDevice) {
+								document.activeElement?.blur();
+							}
 						}}
 					>
 						<button
@@ -2166,6 +2176,10 @@
 																	e.preventDefault();
 																	if (prompt !== '' || files.length > 0) {
 																		dispatch('submit', prompt);
+																		// Dismiss mobile soft keyboard after send
+																		if (isTouchDevice) {
+																			document.activeElement?.blur();
+																		}
 																	}
 																}
 															}
@@ -2742,6 +2756,7 @@
 													content={uploadPending
 														? $i18n.t('Waiting for upload...')
 														: $i18n.t('Send message')}
+													touch={false}
 												>
 													<button
 														id="send-message-button"

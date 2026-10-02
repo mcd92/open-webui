@@ -129,6 +129,8 @@
 	import EmbeddedChatHistoryDropdown from './EmbeddedChatHistoryDropdown.svelte';
 	import InputVariablesModal from './MessageInput/InputVariablesModal.svelte';
 
+	const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+
 	export let chatIdProp = '';
 	export let embedded = false;
 	export let embeddedTitle = '';
@@ -866,7 +868,9 @@
 				await setDefaults();
 			}
 
-			messageInput?.focus({ preventScroll: true });
+			if (!isTouchDevice) {
+				messageInput?.focus({ preventScroll: true });
+			}
 		} else if (!embedded) {
 			await goto('/');
 		} else {
@@ -915,7 +919,9 @@
 		await setDefaults();
 		loading = false;
 		await tick();
-		messageInput?.focus({ preventScroll: true });
+		if (!isTouchDevice) {
+			messageInput?.focus({ preventScroll: true });
+		}
 	};
 
 	const onSelect = async (e) => {
@@ -1678,7 +1684,9 @@
 				await restoreChatInput(storageChatInput);
 			}
 
-			messageInput?.focus({ preventScroll: true });
+			if (!isTouchDevice) {
+				messageInput?.focus({ preventScroll: true });
+			}
 		};
 		init();
 
@@ -2323,7 +2331,9 @@
 		);
 
 		await tick();
-		messageInput?.focus({ preventScroll: true });
+		if (!isTouchDevice) {
+			messageInput?.focus({ preventScroll: true });
+		}
 	};
 
 	const loadChat = async () => {
@@ -3022,8 +3032,9 @@
 
 		history.currentId = userMessageId;
 
-		// focus on chat input (skip during voice call to avoid triggering mobile keyboard)
-		if (!$showCallOverlay) {
+		// focus on chat input (skip during voice call to avoid triggering mobile
+		// keyboard, or on touch devices where the send flow dismisses the keyboard)
+		if (!$showCallOverlay && !isTouchDevice) {
 			messageInput?.focus({ preventScroll: true });
 		}
 

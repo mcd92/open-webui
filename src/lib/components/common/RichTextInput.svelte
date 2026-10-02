@@ -331,8 +331,11 @@
 	export let insertPromptAsRichText = false;
 	export let floatingMenuPlacement = 'bottom-start';
 
-	// Keep focus off the chat input during a call so the call overlay's M shortcut works
-	$: suppressAutoFocus = messageInput && $showCallOverlay;
+	// Keep focus off the chat input during a call so the call overlay's M shortcut works,
+	// and on touch devices where focusing the input re-summons the soft keyboard
+	const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+
+	$: suppressAutoFocus = messageInput && ($showCallOverlay || isTouchDevice);
 
 	let content = null;
 	let htmlValue = '';
@@ -935,7 +938,7 @@
 				...(collaboration && provider ? [provider.getEditorExtension()] : [])
 			],
 			content: provider ? undefined : content,
-			autofocus: messageInput && !$showCallOverlay,
+			autofocus: messageInput && !suppressAutoFocus,
 			onTransaction: () => {
 				if (!editor) return;
 

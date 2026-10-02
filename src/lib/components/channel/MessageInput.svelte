@@ -6,7 +6,6 @@
 	import { get } from 'svelte/store';
 
 	const i18n: any = getContext('i18n');
-
 	import { channelRequestQueues, config, mobile, settings, socket, user } from '$lib/stores';
 	import { processingQueueChannels, processNextInQueue } from '$lib/utils/channelQueue';
 	import QueuedMessageItem from '../chat/MessageInput/QueuedMessageItem.svelte';
@@ -44,6 +43,8 @@
 	import MentionList from './MessageInput/MentionList.svelte';
 	import Skeleton from '../chat/Messages/Skeleton.svelte';
 	import XMark from '../icons/XMark.svelte';
+
+	const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
 
 	export let placeholder = $i18n.t('Type here...');
 	export let chatInputElement: any;
@@ -624,7 +625,15 @@
 		}
 
 		await tick();
-		if (!isDestroyed && targetQueueKey === queueKey) chatInputElement?.focus();
+		if (!isDestroyed && targetQueueKey === queueKey) {
+			// On touch devices, dismiss the soft keyboard after send instead of
+			// re-focusing the input; desktop keeps focus for rapid follow-ups.
+			if (isTouchDevice) {
+				document.activeElement?.blur();
+			} else {
+				chatInputElement?.focus();
+			}
+		}
 	};
 
 	$: if (content) {
