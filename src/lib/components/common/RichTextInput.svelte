@@ -549,8 +549,13 @@
 
 		selectNextTemplate(editor.view.state, editor.view.dispatch);
 
-		// Ensure the editor is still valid before trying to focus
-		focus();
+		// Ensure the editor is still valid before trying to focus.
+		// Skip on touch devices: setText('') runs right after send, and
+		// re-focusing here re-summons the soft keyboard the send flow
+		// just dismissed (mirrors the #31657 touch guard).
+		if (!('ontouchstart' in window)) {
+			focus();
+		}
 	};
 
 	export const insertContent = (content) => {
@@ -711,7 +716,12 @@
 			setTimeout(() => {
 				const templateFound = selectNextTemplate(editor.view.state, editor.view.dispatch);
 				if (!templateFound) {
-					editor.commands.focus('end');
+					// Skip editor.commands.focus('end') on touch devices: clearing
+					// content after send routes through here and focusing re-summons
+					// the soft keyboard (this call survived all app-layer guards).
+					if (!('ontouchstart' in window)) {
+						editor.commands.focus('end');
+					}
 				}
 			}, 0);
 		}
@@ -945,7 +955,9 @@
 				...(collaboration && provider ? [provider.getEditorExtension()] : [])
 			],
 			content: provider ? undefined : content,
-			autofocus: messageInput ? true : false,
+			// Skip auto-focus on touch devices: (re)mount after the first send or
+			// navigating between chats would re-summon the soft keyboard.
+			autofocus: messageInput && !('ontouchstart' in window) ? true : false,
 			onTransaction: () => {
 				if (!editor) return;
 
