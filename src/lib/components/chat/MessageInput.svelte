@@ -1363,6 +1363,63 @@
 		shiftKey = false;
 	};
 
+	// iOS standalone PWA cold-open quirk: the first tap on the send button
+	// completes its pointer gesture (pointerdown + pointerup) but WebKit
+	// never synthesizes the click event, so the form never submits. Recover
+	// with a synthetic click on trusted, short touch pointerups; a trusted
+	// click that does arrive supersedes the fallback, and a trusted click
+	// arriving after the fallback fires is treated as its duplicate.
+
+	const isTouch = 'ontouchstart' in window;
+	let sendPointerDownAt = 0;
+	let sendLastTrustedClickAt = 0;
+	let sendFallbackFiredAt = 0;
+
+	const onSendPointerDown = (e: PointerEvent) => {
+		if (e.isTrusted) {
+			sendPointerDownAt = Date.now();
+		}
+	};
+
+	const onSendPointerUp = (e: PointerEvent) => {
+		if (!isTouch || !e.isTrusted) {
+			return;
+		}
+
+		const downAt = sendPointerDownAt;
+		sendPointerDownAt = 0;
+
+		const heldMs = downAt ? Date.now() - downAt : -1;
+		if (heldMs < 0 || heldMs > 500) {
+			// long-press or unknown gesture: leave native behavior alone
+			return;
+		}
+
+		const upAt = Date.now();
+		window.setTimeout(() => {
+			if (sendLastTrustedClickAt >= upAt - 10) {
+				// WebKit dispatched the click after all
+				return;
+			}
+			sendFallbackFiredAt = Date.now();
+			const btn = document.getElementById('send-message-button');
+			btn?.click();
+		}, 60);
+	};
+
+	const onSendClick = (e: MouseEvent) => {
+		if (!e.isTrusted) {
+			// our own fallback click: let it run (submits the form)
+			return;
+		}
+		sendLastTrustedClickAt = Date.now();
+		if (sendFallbackFiredAt && Date.now() - sendFallbackFiredAt < 1000) {
+			// late trusted click duplicating the fallback: drop it
+			e.preventDefault();
+			e.stopPropagation();
+		}
+	};
+
 	onMount(() => {
 		suggestions = [
 			{
@@ -2762,7 +2819,10 @@
 															: 'text-white bg-gray-200 dark:text-gray-900 dark:bg-gray-700 disabled'} transition rounded-full p-[0.3125rem] self-center"
 														type="submit"
 														disabled={(prompt === '' && files.length === 0) || uploadPending}
-													>
+														on:pointerdown={onSendPointerDown}
+														on:pointerup={onSendPointerUp}
+														on:click={onSendClick}
+														>
 														{#if uploadPending}
 															<Spinner className="size-5" />
 														{:else}
