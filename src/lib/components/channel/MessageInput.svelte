@@ -674,8 +674,15 @@
 		}
 
 		await tick();
-		if (!isDestroyed && targetQueueKey === queueKey)
-			chatInputElement?.focus({ preventScroll: true });
+		if (!isDestroyed && targetQueueKey === queueKey) {
+			// On mobile, dismiss the soft keyboard after send.
+			// On desktop, keep focus in the input for rapid follow-up messages.
+			if ('ontouchstart' in window) {
+				document.activeElement?.blur();
+			} else {
+				chatInputElement?.focus({ preventScroll: true });
+			}
+		}
 	};
 
 	$: if (content) {

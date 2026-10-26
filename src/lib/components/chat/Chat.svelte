@@ -954,7 +954,12 @@
 				await setDefaults();
 			}
 
-			messageInput?.focus({ preventScroll: true });
+			// Skip on touch devices: this focus fires right after the first send
+			// navigates / -> /c/<id>, re-summoning the soft keyboard the send
+			// flow just dismissed (#31657-style guard).
+			if (!('ontouchstart' in window)) {
+				messageInput?.focus({ preventScroll: true });
+			}
 		} else if (!embedded) {
 			await goto('/');
 		} else {
@@ -1004,7 +1009,11 @@
 		await setDefaults();
 		loading = false;
 		await tick();
-		messageInput?.focus({ preventScroll: true });
+		// Skip on touch devices: runs on the / -> /c/<id> transition after the
+		// first send; focusing here re-summons the soft keyboard.
+		if (!('ontouchstart' in window)) {
+			messageInput?.focus({ preventScroll: true });
+		}
 	};
 
 	const onSelect = async (e) => {
@@ -1997,7 +2006,11 @@
 				await restoreChatInput(storageChatInput);
 			}
 
-			messageInput?.focus({ preventScroll: true });
+			// Skip on touch devices: init() runs on every Chat mount, including the
+			// / -> /c/<id> first-send transition; focusing re-summons the keyboard.
+			if (!('ontouchstart' in window)) {
+				messageInput?.focus({ preventScroll: true });
+			}
 		};
 		init();
 
@@ -2877,7 +2890,11 @@
 		);
 
 		await tick();
-		messageInput?.focus({ preventScroll: true });
+		// Skip on touch devices: this runs on every chatId change including the
+		// / -> /c/<id> first-send transition; focusing re-summons the keyboard.
+		if (!('ontouchstart' in window)) {
+			messageInput?.focus({ preventScroll: true });
+		}
 	};
 
 	const loadChat = async () => {
@@ -3648,8 +3665,9 @@
 
 		history.currentId = userMessageId;
 
-		// focus on chat input (skip during voice call to avoid triggering mobile keyboard)
-		if (!$showCallOverlay) {
+		// focus on chat input (skip during voice call to avoid triggering mobile keyboard;
+		// skip on touch devices where the send flow dismisses the soft keyboard instead)
+		if (!$showCallOverlay && !('ontouchstart' in window)) {
 			messageInput?.focus({ preventScroll: true });
 		}
 

@@ -434,7 +434,7 @@
 
 	export const setText = (text: string = '') => {
 		chatInputElement?.setText(text);
-		if (!$showCallOverlay) {
+		if (!$showCallOverlay && !('ontouchstart' in window)) {
 			focus();
 		}
 	};
@@ -1716,7 +1716,9 @@
 		loaded = true;
 
 		window.setTimeout(() => {
-			if (!$showCallOverlay) {
+			// Skip on touch devices: the component (re)mounts on the first-send
+			// / -> /c/<id> transition; focusing re-summons the soft keyboard.
+			if (!$showCallOverlay && !('ontouchstart' in window)) {
 				const chatInput = document.getElementById('chat-input');
 				chatInput?.focus();
 			}
@@ -1919,6 +1921,10 @@
 
 								if ($settings?.speechAutoSend ?? false) {
 									dispatch('submit', prompt);
+									// Dismiss mobile soft keyboard after speech auto-send
+									if ('ontouchstart' in window) {
+										document.activeElement?.blur();
+									}
 								}
 							}}
 						/>
@@ -1927,6 +1933,10 @@
 						class="w-full flex flex-col gap-1.5 {recording ? 'hidden' : ''}"
 						on:submit|preventDefault={() => {
 							dispatch('submit', prompt);
+							// Dismiss mobile soft keyboard after send
+							if ('ontouchstart' in window) {
+								document.activeElement?.blur();
+							}
 						}}
 					>
 						<button
@@ -2336,6 +2346,10 @@
 																	e.preventDefault();
 																	if (prompt !== '' || files.length > 0) {
 																		dispatch('submit', prompt);
+																		// Dismiss mobile soft keyboard after send
+																		if ('ontouchstart' in window) {
+																			document.activeElement?.blur();
+																		}
 																	}
 																}
 															}
@@ -2929,7 +2943,7 @@
 										{:else}
 											<div class=" flex items-center">
 												<!-- Preserve the former upload label for i18n extraction: $i18n.t('Waiting for upload...') -->
-												<Tooltip content={$i18n.t('Send message')}>
+												<Tooltip content={$i18n.t('Send message')} touch={false}>
 													<button
 														id="send-message-button"
 														aria-label={$i18n.t('Send message')}
